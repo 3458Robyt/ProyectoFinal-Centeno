@@ -1,45 +1,54 @@
-const apiKey = 'r4FJX0isD2ab2GMveGDWyvpRHtrfk9Vf'; // Reemplaza con tu clave de API de AccuWeather
-
-// Obtener datos del clima
-
-function getWeatherData(city) {
-  const url = `https://dataservice.accuweather.com/locations/v1/cities/search?apikey=${apiKey}&q=${city}`;
-  fetch(url)
-    .then(response => response.json())
-    .then(data => {
-      const locationKey = data[0].Key;
-      console.log(data);
-      console.log(locationKey);
-      return fetch(`https://dataservice.accuweather.com/currentconditions/v1/${locationKey}?apikey=${apiKey}`);
-    })
-    .then(response => response.json())
-    .then(data => {
-      const currentWeather = data[0];
-      console.log(currentWeather);
-      displayWeather(currentWeather); 
-    })
-    .catch(error => {
-      console.log('Error:', error);
+let weather = {
+    apiKey: "API KEY GOES HERE",
+    fetchWeather: function (city) {
+      fetch(
+        "https://api.openweathermap.org/data/2.5/weather?q=" +
+          city +
+          "&units=metric&appid=" +
+          this.apiKey
+      )
+        .then((response) => {
+          if (!response.ok) {
+            alert("No weather found.");
+            throw new Error("No weather found.");
+          }
+          return response.json();
+        })
+        .then((data) => this.displayWeather(data));
+    },
+    displayWeather: function (data) {
+      const { name } = data;
+      const { icon, description } = data.weather[0];
+      const { temp, humidity } = data.main;
+      const { speed } = data.wind;
+      document.querySelector(".city").innerText = "Weather in " + name;
+      document.querySelector(".icon").src =
+        "https://openweathermap.org/img/wn/" + icon + ".png";
+      document.querySelector(".description").innerText = description;
+      document.querySelector(".temp").innerText = temp + "°C";
+      document.querySelector(".humidity").innerText =
+        "Humidity: " + humidity + "%";
+      document.querySelector(".wind").innerText =
+        "Wind speed: " + speed + " km/h";
+      document.querySelector(".weather").classList.remove("loading");
+      document.body.style.backgroundImage =
+        "url('https://source.unsplash.com/1600x900/?" + name + "')";
+    },
+    search: function () {
+      this.fetchWeather(document.querySelector(".search-bar").value);
+    },
+  };
+  
+  document.querySelector(".search button").addEventListener("click", function () {
+    weather.search();
+  });
+  
+  document
+    .querySelector(".search-bar")
+    .addEventListener("keyup", function (event) {
+      if (event.key == "Enter") {
+        weather.search();
+      }
     });
-}
-
-// getWeatherData('miami');
-
-// Mostrar datos del clima en el DOM
-function displayWeather(weather) {
-  const locationElement = document.getElementById('location');
-  const currentWeatherElement = document.getElementById('current-weather');
-
-  console.log(locationElement);
-  console.log(currentWeatherElement);
-
-  locationElement.textContent = `Ubicación: ${weather[0].LocalizedName}, ${weather[0].Country.LocalizedName}`;
-  currentWeatherElement.textContent = `Clima actual: ${weather[0].WeatherText}, ${weather[0].Temperature.Metric.Value}°${weather[0].Temperature.Metric.Unit}`;
-}
-
-// Manejar el evento de envío del formulario
-document.getElementById('search-form').addEventListener('submit', function(event) {
-  event.preventDefault();
-  const city = document.getElementById('city-input').value;
-  getWeatherData(city);
-});
+  
+  weather.fetchWeather("Denver");
