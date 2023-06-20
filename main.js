@@ -1,54 +1,79 @@
 let weather = {
-    apiKey: "817bf36acf2fb1d245740aa1398211d1",
-    fetchWeather: function (city) {
-      fetch(
-        "https://api.openweathermap.org/data/2.5/weather?q=" +
-          city +
-          "&units=metric&appid=" +
-          this.apiKey
-      )
-        .then((response) => {
-          if (!response.ok) {
-            alert("No weather found.");
-            throw new Error("No weather found.");
-          }
-          return response.json();
-        })
-        .then((data) => {
-          this.displayWeather(data);
-        });
-    },
-    displayWeather: function (data) {
-      const { name } = data;
-      const { icon, description } = data.weather[0];
-      const { temp, humidity } = data.main;
-      const { speed } = data.wind;
-      const currentDate = moment().format("MMMM Do YYYY, h:mm:ss a");
+  apiKey: "817bf36acf2fb1d245740aa1398211d1",
+  timeZoneApiKey: "2RNQLAALCDM7",
+  fetchWeather: function (city) {
+    fetch(
+      "https://api.openweathermap.org/data/2.5/weather?q=" +
+        city +
+        "&units=metric&appid=" +
+        this.apiKey
+    )
+      .then((response) => {
+        if (!response.ok) {
+          alert("No weather found.");
+          throw new Error("No weather found.");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        this.fetchLocalTime(data.coord.lat, data.coord.lon);
+        this.displayWeather(data);
+      });
+  },
+  fetchLocalTime: function (latitude, longitude) {
+    fetch(
+      "https://api.timezonedb.com/v2.1/get-time-zone?key=" +
+        this.timeZoneApiKey +
+        "&format=json&by=position&lat=" +
+        latitude +
+        "&lng=" +
+        longitude
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch local time.");
+        }
+        return response.json();
+      })
+      .then((timeData) => {
+        const { formatted } = timeData;
+        const localTime = moment(formatted).format("MMMM Do YYYY, h:mm:ss a");
+        document.querySelector(".local-time").innerText = "Local Time: " + localTime;
+      })
+      .catch((error) => {
+        console.log("Error fetching local time:", error);
+      });
+  },
+  displayWeather: function (data) {
+    const { name } = data;
+    const { icon, description } = data.weather[0];
+    const { temp, humidity } = data.main;
+    const { speed } = data.wind;
+    const currentDate = moment().format("MMMM Do YYYY, h:mm:ss a");
 
-      document.querySelector(".city").innerText = "Weather in " + name;
-      document.querySelector(".icon").src =
-        "https://openweathermap.org/img/wn/" + icon + ".png";
-      document.querySelector(".description").innerText = description;
-      document.querySelector(".temp").innerText = temp + "°C";
-      document.querySelector(".humidity").innerText = "Humidity: " + humidity + "%";
-      document.querySelector(".wind").innerText = "Wind speed: " + speed + " km/h";
-      document.querySelector(".current-date").innerText = "Current Date: " + currentDate;
-      document.querySelector(".weather").classList.remove("loading");
-      document.body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?" + name + "')";
-    },
-    search: function () {
-      this.fetchWeather(document.querySelector(".search-bar").value);
-    },
-  };
+    document.querySelector(".city").innerText = "Weather in " + name;
+    document.querySelector(".icon").src = "https://openweathermap.org/img/wn/" + icon + ".png";
+    document.querySelector(".description").innerText = description;
+    document.querySelector(".temp").innerText = temp + "°C";
+    document.querySelector(".humidity").innerText = "Humidity: " + humidity + "%";
+    document.querySelector(".wind").innerText = "Wind speed: " + speed + " km/h";
+    document.querySelector(".current-date").innerText = "Current Date: " + currentDate;
+    document.querySelector(".weather").classList.remove("loading");
+    document.body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?" + name + "')";
+  },
+  search: function () {
+    this.fetchWeather(document.querySelector(".search-bar").value);
+  },
+};
 
-  document.querySelector(".search button").addEventListener("click", function () {
+document.querySelector(".search button").addEventListener("click", function () {
+  weather.search();
+});
+
+document.querySelector(".search-bar").addEventListener("keyup", function (event) {
+  if (event.key == "Enter") {
     weather.search();
-  });
+  }
+});
 
-  document.querySelector(".search-bar").addEventListener("keyup", function (event) {
-    if (event.key == "Enter") {
-      weather.search();
-    }
-  });
-
-  weather.fetchWeather("Denver");
+weather.fetchWeather("Denver");
