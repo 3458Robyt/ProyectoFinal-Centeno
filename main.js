@@ -1,7 +1,21 @@
-let weather = {
-  apiKey: "817bf36acf2fb1d245740aa1398211d1",
-  timeZoneApiKey: "2RNQLAALCDM7",
-  fetchWeather: function (city) {
+class WeatherData {
+  constructor(name, icon, description, temp, humidity, wind) {
+    this.name = name;
+    this.icon = icon;
+    this.description = description;
+    this.temp = temp;
+    this.humidity = humidity;
+    this.wind = wind;
+  }
+}
+
+class Weather {
+  constructor(apiKey, timeZoneApiKey) {
+    this.apiKey = apiKey;
+    this.timeZoneApiKey = timeZoneApiKey;
+  }
+
+  fetchWeather(city) {
     fetch(
       "https://api.openweathermap.org/data/2.5/weather?q=" +
         city +
@@ -10,17 +24,32 @@ let weather = {
     )
       .then((response) => {
         if (!response.ok) {
-          alert("No weather found.");
+          this.showError("No weather found");
           throw new Error("No weather found.");
+        } else {
+          this.hideError();
         }
         return response.json();
       })
       .then((data) => {
+        const weatherData = this.extractWeatherData(data);
         this.fetchLocalTime(data.coord.lat, data.coord.lon);
-        this.displayWeather(data);
+        this.displayWeather(weatherData);
       });
-  },
-  fetchLocalTime: function (latitude, longitude) {
+  }
+
+  extractWeatherData(data) {
+    const name = data.name;
+    const icon = data.weather[0].icon;
+    const description = data.weather[0].description;
+    const temp = data.main.temp;
+    const humidity = data.main.humidity;
+    const wind = data.wind.speed;
+
+    return new WeatherData(name, icon, description, temp, humidity, wind);
+  }
+
+  fetchLocalTime(latitude, longitude) {
     fetch(
       "https://api.timezonedb.com/v2.1/get-time-zone?key=" +
         this.timeZoneApiKey +
@@ -43,12 +72,10 @@ let weather = {
       .catch((error) => {
         console.log("Error fetching local time:", error);
       });
-  },
-  displayWeather: function (data) {
-    const { name } = data;
-    const { icon, description } = data.weather[0];
-    const { temp, humidity } = data.main;
-    const { speed } = data.wind;
+  }
+
+  displayWeather(data) {
+    const { name, icon, description, temp, humidity, wind } = data;
     const currentDate = moment().format("MMMM Do YYYY, h:mm:ss a");
 
     document.querySelector(".city").innerText = "Weather in " + name;
@@ -56,15 +83,36 @@ let weather = {
     document.querySelector(".description").innerText = description;
     document.querySelector(".temp").innerText = temp + "°C";
     document.querySelector(".humidity").innerText = "Humidity: " + humidity + "%";
-    document.querySelector(".wind").innerText = "Wind speed: " + speed + " km/h";
+    document.querySelector(".wind").innerText = "Wind speed: " + wind + " km/h";
     document.querySelector(".current-date").innerText = "Current Date: " + currentDate;
     document.querySelector(".weather").classList.remove("loading");
     document.body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?" + name + "')";
-  },
-  search: function () {
-    this.fetchWeather(document.querySelector(".search-bar").value);
-  },
-};
+  }
+
+  showError(message) {
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('error-message').style.display = 'block';
+
+    Notification.requestPermission().then(function(permission) {
+      if (permission === 'granted') {
+        new Notification('Error', {
+          body: message
+        });
+      }
+    });
+  }
+
+  hideError() {
+    document.getElementById('error-message').style.display = 'none';
+  }
+
+  search() {
+    const searchInput = document.querySelector(".search-bar").value;
+    if (searchInput.trim() !== "") {
+      this.fetchWeather(searchInput);
+    }
+  }
+}
 
 document.querySelector(".search button").addEventListener("click", function () {
   weather.search();
@@ -75,5 +123,9 @@ document.querySelector(".search-bar").addEventListener("keyup", function (event)
     weather.search();
   }
 });
+
+const weatherApiKey = "817bf36acf2fb1d245740aa1398211d1";
+const timeZoneApiKey = "2RNQLAALCDM7";
+const weather = new Weather(weatherApiKey, timeZoneApiKey);
 
 weather.fetchWeather("Denver");
